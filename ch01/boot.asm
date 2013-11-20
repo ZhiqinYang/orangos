@@ -6,7 +6,7 @@ mov ax, cs   ;使 cs, ds, es 指向同一段内
 mov ds, ax 
 mov es, ax
 
-call DispStr
+call DispStR
 jmp $       ; 死循环，不停的在此处跳转 '$'当前地址
 
 DispStr:
