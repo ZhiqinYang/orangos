@@ -119,6 +119,8 @@ LABEL_BEGIN:
     add eax, LABEL_GDT               ; 计算jdt线性地址
     mov  dword [GdtPr + 2] , eax     ; 将jdt线性地址保存到 0 -1 号地址中 
 
+
+    ;设置好GDT之后，我们需要通过LGDT指令将设定的gdt的入口地址和gdt表的大小装入GDTR寄存器
     lgdt [GdtPr]                     ; 加载gdt  GdtPr中记录了jdt长度和首地址 （加载数据）
 
    
