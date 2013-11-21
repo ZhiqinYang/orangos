@@ -1,0 +1,245 @@
+#segment 寄存器的真实结构
+http://www.mouseos.com/arch/segment_registers.html
+
+Segment Register 也可以称作 Selector Register，它在整个 x86/x64 体系下实在太重要了。
+
+这里讲解的是 user segment 寄存器，包括：
+
+Code 段寄存器：CS
+Data 段寄存器：ES, SS, DS, FS 以及 GS
+这些段寄存器由 user segment descriptor 装载进去。
+
+我们很有必要先去了解 segment 寄存器的真实结构：
+
+
+
+上图是我画的 Segment Registers 内部结构图，这分为 4 个部分：
+
+Selector
+Attribute
+Limit
+Base
+图中已经标出灰色部分是 processor 内部使用的，仅仅只有 Selector 部分可以由用户使用
+
+但是在 64 位模式下，它很特别：
+
+Base 是 64 位的，但是对于 CS, ES, DS 和 SS 来说 Base 是无效的，而对于 FS 和 GS 来说，它们是有效的，64 位的 Base address 可以由用户设定
+Attribute 只有少数几个属性位是有效的
+Limit 对于所有的 segment registers 来说都是无效的。
+注意上面所说的是针对在 64 位模式下。
+
+segment registers 结构体现了 protected mode 下的几大元素：
+
+selector
+descriptor
+descriptor table
+ 
+
+1. 提供基址
+
+Segment registers 的 base 提供基址，无论是 real mode 下还是 protected mode 下，其地址的计算方法都是：base + offset
+
+如果有下面代码：
+
+     jmp next
+
+next:
+
+目标代码地址在 CS.base + eip
+
+ 
+
+2. Segment Registers 的 Attribute 部分
+
+Segment Registers 的 Attribute 是描述段的属性，它在装载 segment descriptor 的时候加载进去设置的，它包括：
+
+G 属性：segment limit 的粒度，G = 1 是 4K bytes 粒度,　G = 0 是 1 byte 粒度
+D/B 属性：有两重意义：
+D 属性：对于 code segment 来说代表 default operands，D = 1 时 32 位 default operands，D = 0 时 16 位 default operands
+B 属性：对于 stack segment 来说代表 default stack size，B = 1 时 32 位 stack size, B = 0 时 16 位 stack size
+P 属性：present 位，表示是否加载到内存中
+DPL 属性：Privilege-Level（权限级别）范围从 0 - 3 级
+S 属性：S = 0 是系统数据 segment， S = 1 用户 segment
+Type 属性：代表 segment 类别
+在 real mode 下 segment registers 的 Attribute 一般情况下是初始状态。在 protected mode 下它随着 descriptor 而改变。
+
+
+2.1 64 模式下的 segment registes attribute
+
+在 64 位模式下大多数属性位都是无效的，并且在 code segment register 和 data segment register 之间也存在差别：
+
+2.1.1 CS 寄存器
+
+在 CS 寄存器里新增了一个属性位：
+
+L 属性： 它用来指示 processor 当前处于 64 bit 模式还是 compatibility 模式：
+当 CS.L = 1 时，processor 处于 64 bit 模式
+当 CS.L = 0 时，processor 处于 compatibility 横式
+在 64 位下 CS 寄存器只有下面的一些属性位是有效的：
+
+D 属性
+L 属性
+P 属性
+DPL 属性
+C 属性
+但是请注意：
+
+你必须要设置 CS 寄存器的 S 属性和 C/D 属性：
+
+CS.S = 1 表示：用户的段寄存器
+CS.C/D = 1 表示：该 segment register 是代码段寄存器
+这也就是说：加载到 CS 寄存器的 code segment descriptor 你必须将它的 S 属性设为 1，C/D 属性设为 1 才能加载到 CS 寄存器中
+
+S 属性用来设置 system 还是 user 的段寄存器，属性 system 的段寄存器有：LDTR 寄存器和 TR 寄存器
+
+C/D 属性用来指示是 Code 还是 Data 段。
+
+对 CS 寄存器来说，您必须设置这两个属性位为 1 表明它是用户代码段寄存器，否则会产生 #GP 异常
+
+
+2.1.2 Data segment registers（ES, DS, FS 以及 GS 寄存器）
+
+对于这几个 data 段寄存器（SS 寄存器有些特别，除外）来说，只有下面这个属性才有效：
+
+P 属性
+但是同样需要注意：
+
+必须设置 data 段寄存器的 S 属性和 C/D 属性（以 DS 寄存器为例）：
+
+DS.S = 1 表示：用户的段寄存器
+DS.C/D = 0 表示：它是 Data 段寄存器
+但是有一种例外：
+
+使用 NULL selector 加载到 data segment register 是允许的，processor 将加载 invalid 不可用的 descriptor 到 segment registers 中
+也就是说：除了使用 NULL selector 加载外，data segment descriptor 的 S 属性需设为 1，C/D 属性需设为 0 才能加载到 data segment registers 中
+
+对 DS 段寄存器来说，S 必须为 1 并且 C/D 为 0 表明它是用户的数据段寄存器，否则会产生 #GP 异常
+
+
+2.1.3 SS 寄存器
+
+SS 寄存器是 data segment register 的其中一种，除了要遵循上面的 data segment register 规则外。
+
+它还必须：
+
+在 SS 寄存器的 attribute 域的 type 里：
+
+W = 1（Writable）
+E 忽略
+A 忽略
+这表示：由 SS 寄存器访问的 stack segment必须是可写的，因此：加载到 SS 寄存器的 data segment descriptor 它的 W 属性必须设为 1（表示可写）
+
+在 64 位模式下可以使用 NULL selector 加载到 SS 寄存器中，processor 不会去读取 GDT 表中的第 1 项，而是以 invalid unused 的 segment 到 SS 寄存器中
+
+但是在 legacy x86 模式和 compatibility 模式下是不能使用 NULL selector 加载来 SS 寄存器的。
+
+ 
+
+3. 更新 segment register 的 base
+
+了解 segment registers 结构有什么好处呢？ 我们来了解一下 segment register 的 base 更新情况。
+
+base 的更新在 real mode 和 protected mode 下是不同的。
+
+ 
+
+3.1　real mode 下的 base 更新
+
+我们来看一下在 real mode 下 segment register 的情形
+
+以上面的代码为例：
+
+        mov ax, cs
+        mov ds, ax
+
+这两条代码是在 real mode 下，它有什么奥秘呢？
+
+指令 mov ax, cs 中是将 CS 寄存器的 selector 赋给 ax，也就是：mov ax, CS.selector
+指令 mov ds, ax 改变了 DS 寄存器的两个值：
+
+DS.selector = ax
+DS.base = DS.selector << 4
+DS 寄存器的 selector 得到更新，同时 base 也得到更新，这个 DS 寄存器的 base 的更新规则就是 real mode 下的寻址方式：
+
+address = segment * 16 + offset
+
+3.2 protected mode 下 base 的更新
+
+在 protected mode 下，base 的更新是在加载 descriptor 进入 registers 时发生：base 被更新为 segment descriptor 的 base 域
+
+ 
+
+4. segment register 的 limit 值
+
+在 real mode 下 segment register 的 limit 一般情况下固定为 0xFFFF（64K 大小），这个值在 processor 初始化时设定。
+
+在 protected mode 下这个值最大范围为 0xFFFFFFFF（4G 大小）依赖于加载的 descriptor 的 limit 值。
+
+ 
+
+5. Segment Registers 的装载
+
+下面代码是在 protected mode 下执行：
+
+        bits 32
+
+code32_entry:
+        mov ax, data32_sel
+        mov ds, ax
+
+将 data segment descriptor 的 selector 赋给 ax，下面的指令：
+
+mov ds, ax
+将会引发 processor 做一系列的工作：
+
+获取 data segment descriptor
+检查访问权限
+更新 DS 寄存器内部结构
+通过权限检查后 processor 将 data segment descriptor 相应的信息更新 DS 内部结构，包括：
+
+selector 更新
+attribulte 更新
+limit 更新
+base 更新
+但是在 real mode 下如果不转到 protected mode 下更新，segment register 的 attribute 和 limit 是永远得不到更新的。它的 limit 值固定为 0xFFFF
+
+关于real mode 下 segment 的 attrbiute 属性，请参见：http://www.mouseos.com/arch/001.html 里有详细描述。
+
+前面已经讲过，selector 会得到更新，而 base 会被更新为 selector << 4
+
+看看下面这段伪代码：
+
+struct SELECTOR selector = 8;                                /* selector = 0x08 */
+
+struct DESCRIPTOR descriptor = get_descriptor(selector);     /* get segment descriptor */
+
+/* update DS register ... */
+
+DS.selector = selector;
+DS.attribute = descriptor.attribute;
+DS.limit = descriptor.G ? descriptor.limit * 4096 + 0xfff : descriptor.limit;
+DS.base = descriptor.base;
+
+使用了 selector 为 8 获得 descriptor 后进行 DS 寄存器的更新，对 base 的更新要视乎 G 标志位：
+
+G = 1 时，表示粒度为 4K，limit 乘 4K 后加上值 0xfff，这是为了保证 0xFFFFFFFF 的最大 limit 值
+G = 0 时，表示粒度为 1 byte，limit 就等于 descriptor 的 limit 值
+ 
+
+6. 描述 segment register 结构
+
+下面是 C 代码的描述：
+
+struct SEGMENT_REGISTER {
+
+         unsigned short selector;
+         unsigned short attribute;
+         unsigned int limit;
+
+#ifdef __x64__
+         unsigned long long base;
+#else
+         unsigned int base;
+#endif
+
+};
