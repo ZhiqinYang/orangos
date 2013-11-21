@@ -166,7 +166,7 @@ LABEL_BEGIN:
     
     ;准备切换到保护模式
     mov eax, cr0
-    or eax, 1
+    or eax, 1              ;pe位置1
     mov cr0 , eax
 
     ;进入保护模式
