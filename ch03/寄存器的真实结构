@@ -1,5 +1,5 @@
 #segment 寄存器的真实结构
-http://www.mouseos.com/arch/segment_registers.html
+转载自：【http://www.mouseos.com/arch/segment_registers.html】 防止丢失顾做了拷贝
 
 Segment Register 也可以称作 Selector Register，它在整个 x86/x64 体系下实在太重要了。
 
