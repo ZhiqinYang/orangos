@@ -272,6 +272,8 @@ LABEL_REAL_ENTRY:
 [SECTION .s32]
 [BITS 32]
 LABEL_SEG_CODE32:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;初始化选择字
     mov ax, SelectorData
     mov ds, ax
     mov ax, SelectorTest
@@ -283,7 +285,8 @@ LABEL_SEG_CODE32:
     mov ss , ax
     
     mov esp , TopOfStack
-    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     ;显示字符串
     mov ah , 0ch
     xor esi, esi
