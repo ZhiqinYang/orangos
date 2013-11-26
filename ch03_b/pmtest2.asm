@@ -179,7 +179,7 @@ LABEL_BEGIN:
     ;初始化32位代码段描述符，主要是段基地址的转换 16 =》 32 位 
     xor eax, eax
     mov ax, cs
-    shl eax, 4
+    shl eax, 4                              ;右移四位获取到真实的基地址， 由386历史原因造成
     add eax, LABEL_SEG_CODE32              ; 计算物理地址（16 位转32位）= 段地址 + 偏移 
     mov word [LABEL_DESC_CODE32 + 2] , ax  ;段界限占2个字节，所以偏移两个字节，初始化段基地址 (1)   |
     shr eax , 16                         ;                                                          ||} 共三个字节
