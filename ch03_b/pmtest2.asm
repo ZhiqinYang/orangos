@@ -296,6 +296,9 @@ LABEL_SEG_CODE32:
     cld
 
 .1:
+;汇编语言中，串操作指令LODSB/LODSW是块装入指令，其具体操作是把SI指向的存储单元读入累加器,
+;其中LODSB是读入AL,LODSW是读入AX中,然后SI自动增加或减小1或2位.当方向标志位D=0时，则SI自动
+;增加；D=1时，SI自动减小
     lodsb
     test  al, al
     jz .2
