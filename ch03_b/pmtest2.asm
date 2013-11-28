@@ -300,7 +300,7 @@ LABEL_SEG_CODE32:
 ;其中LODSB是读入AL,LODSW是读入AX中,然后SI自动增加或减小1或2位.当方向标志位D=0时，则SI自动
 ;增加；D=1时，SI自动减小
     lodsb
-    test  al, al
+    test  al, al    ;al与al相与，但不改变al中的值，结果计入标志位用于 jump
     jz .2
     mov [gs:edi] , ax 
     add  edi, 2
